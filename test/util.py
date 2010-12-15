@@ -45,7 +45,10 @@ def quiet(flag=True):
 	global __stdout__
 	if flag:
 		__stdout__=sys.stdout
-		sys.stdout=file("/dev/null","w")
+		try:
+			sys.stdout=file("/dev/null","w")
+		except:
+			sys.stdout=file("nul","w")
 	else:
 		if __stdout__==None:return
 		sys.stdout=__stdout__
