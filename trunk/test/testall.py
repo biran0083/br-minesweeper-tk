@@ -5,4 +5,4 @@ test_list=[
 "test5.py",
 ]
 for f in test_list:
-	os.system("./"+f)
+	os.system("."+os.sep+f)
