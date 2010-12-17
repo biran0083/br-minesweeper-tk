@@ -83,6 +83,7 @@ class MineSweeper:
 					if b['image']!=self.images["UNKNOWN"]:
 						b['image']=self.images["UNKNOWN"]
 				elif state==KNOWN:
+					b['relief']=SUNKEN
 					if value==MINE:
 						if b['image']!=self.images["MINE"]:
 							b['image']=self.images["MINE"]
@@ -97,44 +98,51 @@ class MineSweeper:
 			tkMessageBox.showinfo("You Win","Congradulations!")
 		elif self.gl.state==self.gl.LOSE:
 			tkMessageBox.showinfo("You Lose","Better luck next time!")
+	def sunken_neighbour_widgets(self,w):
+		i,j=self.button_location(w)
+		gl=self.gl
+		l=gl.game_board.get_neighbours(i,j)
+		for i,j in l:
+			if gl.get_cell_state(i,j)==ms.Cell.UNKNOWN:
+				self.buttons[i][j]['relief']=SUNKEN
+	def raised_neighbour_widgets(self,w):
+		i,j=self.button_location(w)
+		gl=self.gl
+		l=gl.game_board.get_neighbours(i,j)
+		for i,j in l:
+			if gl.get_cell_state(i,j)==ms.Cell.UNKNOWN:
+				self.buttons[i][j]['relief']=RAISED
+	def button_location(self,w):
+		gl=self.gl
+		row=gl.row
+		col=gl.col
+		for i in range(row):
+			for j in range(col):
+				if self.buttons[i][j]==w:
+					return (i,j)
+	def left_click_widget(self,w):
+		i,j=self.button_location(w)
+		self.dig(i,j)
+	def left_right_click_widget(self,w):
+		i,j=self.button_location(w)
+		self.explore(i,j)
+	def right_click_widget(self,w):
+		i,j=self.button_location(w)
+		self.toggle(i,j)
 	def left_click(self,e):
 		if(self.mouse_state==0):
 			self.mouse_state=1
 		elif(self.mouse_state==2):
 			self.mouse_state=3
-	def left_click_widget(self,w):
-		gl=self.gl
-		row=gl.row
-		col=gl.col
-		for i in range(row):
-			for j in range(col):
-				if self.buttons[i][j]==w:
-					self.dig(i,j)
-					return
-	def left_right_click_widget(self,w):
-		gl=self.gl
-		row=gl.row
-		col=gl.col
-		for i in range(row):
-			for j in range(col):
-				if self.buttons[i][j]==w:
-					self.explore(i,j)
-					return
-	def right_click_widget(self,w):
-		gl=self.gl
-		row=gl.row
-		col=gl.col
-		for i in range(row):
-			for j in range(col):
-				if self.buttons[i][j]==w:
-					self.toggle(i,j)
-					return
+			self.sunken_neighbour_widgets(e.widget)
+
 	def left_release(self,e):
 		if(self.mouse_state==1):
 			self.mouse_state=0
 			self.left_click_widget(e.widget)
 		elif(self.mouse_state==3):
 			self.mouse_state=4
+			self.raised_neighbour_widgets(e.widget)
 			self.left_right_click_widget(e.widget)
 		elif(self.mouse_state==4):
 			self.mouse_state=0
@@ -145,12 +153,14 @@ class MineSweeper:
 			self.right_click_widget(e.widget)
 		elif(self.mouse_state==1):
 			self.mouse_state=3
+			self.sunken_neighbour_widgets(e.widget)
 
 	def right_release(self,e):
 		if(self.mouse_state==2):
 			self.mouse_state=0
 		elif(self.mouse_state==3):
 			self.mouse_state=4
+			self.raised_neighbour_widgets(e.widget)
 			self.left_right_click_widget(e.widget)
 		elif(self.mouse_state==4):
 			self.mouse_state=0
