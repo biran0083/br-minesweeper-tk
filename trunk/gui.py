@@ -200,6 +200,7 @@ class MineSweeper:
 
 root=Tk()
 root.title("pyms")
+root.resizable(width=FALSE,height=FALSE)
 game=MineSweeper(root)
 root.mainloop()
 
