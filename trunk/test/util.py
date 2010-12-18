@@ -12,7 +12,7 @@ def test_no_except(func):
 	except Exception as e:
 		print_to_stderr( "Fail when calling \"%s\"" % func.__name__)
 		print_to_stderr( "Encounter %s when creating GameLogic" % e.__class__.__name__)
-		traceback.print_to_stderr(_tb(sys.exc_info()[2]))
+		traceback.print_tb(sys.exc_info()[2])
 		exit(-1)
 	
 def test_except(func,wanted_exc):

@@ -28,7 +28,7 @@ class MineSweeper:
 		self.gl=ms.GameLogic()
 		self.sl=ms.LoaderSaver()
 		self.buttons=None
-		menu=Menu(root)
+		menu=Menu(master)
 		master['menu']=menu
 		game_menu=Menu(menu)
 		menu.add_cascade(label="Game",menu=game_menu)
@@ -208,10 +208,12 @@ class MineSweeper:
 		self.gl.explore(i,j)
 		self.update_gui()
 
-if __name__=="__main__":
+def start_gui():
 	root=Tk()
 	root.title("pyms")
 	root.resizable(width=FALSE,height=FALSE)
 	game=MineSweeper(root)
 	root.mainloop()
 
+if __name__=="__main__":
+	start_gui()
