@@ -208,9 +208,10 @@ class MineSweeper:
 		self.gl.explore(i,j)
 		self.update_gui()
 
-root=Tk()
-root.title("pyms")
-root.resizable(width=FALSE,height=FALSE)
-game=MineSweeper(root)
-root.mainloop()
+if __name__=="__main__":
+	root=Tk()
+	root.title("pyms")
+	root.resizable(width=FALSE,height=FALSE)
+	game=MineSweeper(root)
+	root.mainloop()
 
