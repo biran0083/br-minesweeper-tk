@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import ms
 from Tkinter import *
+from threading import Thread
 import ImageTk,Image,tkSimpleDialog,tkMessageBox,tkFileDialog
 class MineSweeper:
 	class NewGameDialog(tkSimpleDialog.Dialog):
@@ -166,8 +167,8 @@ class MineSweeper:
 			self.mouse_state=0
 
 	
-	def new_game(self,row,col,num):
-		self.gl.new_game(row,col,num)
+	def new_game(self,row,col,num,mine_loc=None):
+		self.gl.new_game(row,col,num,mine_loc=mine_loc)
 		self.buttons=None
 		self.update_gui()
 	def click_save(self):
@@ -208,12 +209,17 @@ class MineSweeper:
 		self.gl.explore(i,j)
 		self.update_gui()
 
-def start_gui():
+def initialize():
+	global game,root
 	root=Tk()
 	root.title("pyms")
 	root.resizable(width=FALSE,height=FALSE)
 	game=MineSweeper(root)
+
+def start_gui():
+	global root
 	root.mainloop()
 
 if __name__=="__main__":
+	initialize()
 	start_gui()

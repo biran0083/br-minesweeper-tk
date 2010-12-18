@@ -34,9 +34,9 @@ def create_game_board_from_list_validate():
 	for i in range(row):
 		for j in range(col):
 			if (i,j) in l:
-				if gl.game_board.board[i][j].val!=ms.Cell.MINE:
+				if gl.get_cell_value(i,j)!=ms.Cell.MINE:
 					return False
-			elif gl.game_board.board[i][j].val==ms.Cell.MINE:
+			elif gl.get_cell_value(i,j)==ms.Cell.MINE:
 				return False
 	return True
 
