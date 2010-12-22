@@ -285,7 +285,8 @@ class MineSweeper:
 		if self.gl.mode==ms.GameLogic.NORMAL:
 			self.gl.dig(i,j)
 		else:
-			self.gl.turn.make_move(i,j)
+			if self.gl.turn.__class__==ms.Human:
+				self.gl.turn.make_move(i,j)
 		self.update_gui()
 	def mark(self,i,j):
 		self.gl.mark(i,j)
