@@ -281,14 +281,16 @@ class GameLogic:
 				for dj in range(-1,2):
 					self.flood_fill_dig(i+di,j+dj)
 
-	def new_game(self,row,col,num,mine_loc=None):
+	def new_game(self,row,col,num,mine_loc=None,player1=None,player2=None):
 		self.state=GameLogic.RUN
 		self.row=row
 		self.col=col
 		self.game_board=Board(row,col,num,mine_loc=mine_loc)
+		if player1==None:player1=Human("humam",self)
+		if player2==None:player2=AI("AI",self)
 		if self.mode==GameLogic.COMPETE:
-			self.player1=Human("humam",self)
-			self.player2=AI("AI",self)
+			self.player1=player1
+			self.player2=player2
 			self.turn=self.player1
 
 	def __str__(self):
