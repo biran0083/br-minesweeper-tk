@@ -3,7 +3,31 @@ import ms
 from Tkinter import *
 from threading import Thread
 import ImageTk,Image,tkSimpleDialog,tkMessageBox,tkFileDialog
+import traceback,time
+from threading import Thread
+class AIPlayerHandler(Thread):
+	def __init__(self,gl,player):
+		Thread.__init__(self)
+		self.gl=gl
+		self.player=player
+	def run(self):
+		global game
+		print "ai handler starts"
+		try:
+			while self.gl and self.gl.state==ms.GameLogic.RUN:
+				if self.gl.turn == self.player:
+					self.player.make_move()
+					game.update_gui()
+		except NameError:
+			pass
+
 class MineSweeper:
+	class StatusBar(Frame):
+		def __init__(self,master):
+			Frame.__init__(self,master)
+			self.label=Label(self,bd=1,relief=SUNKEN)
+			self.label.pack(fill=X)
+		
 	class NewGameDialog(tkSimpleDialog.Dialog):
 		def body(self,master):
 			Label(master,text="Row:").grid(row=0,column=0)
@@ -18,15 +42,20 @@ class MineSweeper:
 			self.e3=Entry(master)
 			self.e3.grid(row=2,column=1)
 			self.e3.insert(0,"30")
+			self.mode=IntVar()
+			self.r1=Radiobutton(master,text="normal",variable=self.mode,value=ms.GameLogic.NORMAL)
+			self.r2=Radiobutton(master,text="compete",variable=self.mode,value=ms.GameLogic.COMPETE)
+			self.r1.grid(row=3,column=0)
+			self.r2.grid(row=3,column=1)
 			return self.e1
 		def apply(self):
-			self.result=(self.e1.get(),self.e2.get(),self.e3.get())
+			self.result=(self.e1.get(),self.e2.get(),self.e3.get(),self.mode.get())
 	def load_img(self,path):
 		return ImageTk.PhotoImage(Image.open(path))
 	def __init__(self,master):
 		self.root=master
-		f=self.frame=Frame(master,height=200,width=200)
-		self.gl=ms.GameLogic()
+		self.frame=None
+		self.gl=ms.GameLogic(ms.GameLogic.NORMAL)
 		self.sl=ms.LoaderSaver()
 		self.buttons=None
 		menu=Menu(master)
@@ -52,8 +81,11 @@ class MineSweeper:
 			"8":self.load_img("./resource/8.png"),
 		}
 		self.mouse_state=0
+		self.statusbar=MineSweeper.StatusBar(master)
+		self.statusbar.pack(fill=X,side=BOTTOM)
+		#	gui is ready by now
 		self.new_game(15,15,30)
-	def update_gui(self):
+	def update_each_cell(self):
 		gl=self.gl
 		row=gl.row
 		col=gl.col
@@ -62,19 +94,7 @@ class MineSweeper:
 		KNOWN=ms.Cell.KNOWN
 		MARKED=ms.Cell.MARKED
 		MINE=ms.Cell.MINE
-		if self.buttons==None:
-			#constructing new board
-			f.destroy()
-			f=self.frame=Frame(self.root)
-			self.buttons=[[Button(f) for i in range(col)] for j in range(row)]
-			for i in range(row):
-				for j in range(col):
-					b=self.buttons[i][j]
-					b.bind("<Button-1>",self.left_click)
-					b.bind("<ButtonRelease-1>",self.left_release)
-					b.bind("<Button-3>",self.right_click)
-					b.bind("<ButtonRelease-3>",self.right_release)
-					b.grid(row=i,column=j)
+
 		for i in range(row):
 			for j in range(col):
 				b=self.buttons[i][j]
@@ -94,11 +114,56 @@ class MineSweeper:
 				elif state==MARKED:
 					if b['image']!=self.images["MARKED"]:
 						b['image']=self.images["MARKED"]
-		self.frame.pack()
-		if self.gl.state==self.gl.WIN:
-			tkMessageBox.showinfo("You Win","Congradulations!")
-		elif self.gl.state==self.gl.LOSE:
-			tkMessageBox.showinfo("You Lose","Better luck next time!")
+		f.pack(side=TOP)
+	def construct_new_frame(self):
+		gl=self.gl
+		row=gl.row
+		col=gl.col
+		f=self.frame
+
+		if f!=None: f.destroy()	
+		f=self.frame=Frame(self.root)
+		self.buttons=[[Button(f) for i in range(col)] for j in range(row)]
+		for i in range(row):
+			for j in range(col):
+				b=self.buttons[i][j]
+				b.bind("<Button-1>",self.left_click)
+				b.bind("<ButtonRelease-1>",self.left_release)
+				b.bind("<Button-3>",self.right_click)
+				b.bind("<ButtonRelease-3>",self.right_release)
+				b.grid(row=i,column=j)
+	def update_statusbar(self):
+		msg="Mode: "
+		if self.gl.mode==ms.GameLogic.NORMAL:
+			msg+="normal"
+		elif self.gl.mode==ms.GameLogic.COMPETE:
+			msg+="compete"
+		msg+="\t"
+		if self.gl.mode==ms.GameLogic.COMPETE:
+			msg+="Turn: %s" % self.gl.turn.name
+			msg+="\t"
+			msg+="Score: %d-%d" % (self.gl.player1.score,self.gl.player2.score)
+		self.statusbar.label['text']=msg
+	def update_gui(self):
+		if self.buttons==None: self.construct_new_frame()
+		self.update_each_cell()
+		msg=None
+		if self.gl.state==ms.GameLogic.WIN:
+			if self.gl.mode==ms.GameLogic.NORMAL:
+				msg="You Win!\nCongradulations!"
+			elif self.gl.mode==ms.GameLogic.COMPETE:
+				p1,p2=self.gl.player1,self.gl.player2
+				s1,s2=p1.score,p2.score
+				msg="Final score: %d - %d\n" % (s1,s2)
+				if s1 > s2: msg+="%s wins!" % p1.name
+				elif s1 < s2: msg+="%s wins" % p2.name
+				else: msg+="Draw : )"
+		elif self.gl.state==ms.GameLogic.LOSE:
+			if self.gl.mode==ms.GameLogic.NORMAL:
+				msg="You Lose.\nBetter luck next time!"
+		self.update_statusbar()
+		if msg: tkMessageBox.showinfo("Result",msg)
+
 	def sunken_neighbour_widgets(self,w):
 		i,j=self.button_location(w)
 		gl=self.gl
@@ -165,34 +230,62 @@ class MineSweeper:
 			self.left_right_click_widget(e.widget)
 		elif(self.mouse_state==4):
 			self.mouse_state=0
-
-	
-	def new_game(self,row,col,num,mine_loc=None):
+	def clear_ai_handler(self):
+		if self.gl.player1.__class__==ms.AI:
+			self.player1_handler._Thread__stop
+		if self.gl.player2.__class__==ms.AI:
+			self.player2_handler._Thread__stop
+	def set_ai_handler(self):
+		if self.gl.player1.__class__==ms.AI:
+			h=AIPlayerHandler(self.gl,self.gl.player1)
+			self.player1_handler=h
+			h.daemon=True
+			h.start()
+		if self.gl.player2.__class__==ms.AI:
+			h=AIPlayerHandler(self.gl,self.gl.player2)
+			self.player2_handler=h
+			h.daemon=True
+			h.start()
+	def new_game(self,row,col,num,mine_loc=None,mode=ms.GameLogic.NORMAL):
+		if mode!=self.gl.mode:
+			self.gl=ms.GameLogic(mode)
 		self.gl.new_game(row,col,num,mine_loc=mine_loc)
+		if mode==ms.GameLogic.COMPETE:
+			self.set_ai_handler()
 		self.buttons=None
 		self.update_gui()
 	def click_save(self):
 		f=tkFileDialog.asksaveasfile()
 		self.sl.save_to_file(self.gl,f)
 		f.close()
+		print "save complete"
 	def click_load(self):
 		f=tkFileDialog.askopenfile()
+		if self.gl.mode==ms.GameLogic.COMPETE:
+			self.clear_ai_handler()
 		self.gl=self.sl.load_from_file(f)
 		f.close()
+		if self.gl.mode==ms.GameLogic.COMPETE:
+			self.set_ai_handler()
 		self.update_gui()
 	def click_new_game(self):
 		d=self.NewGameDialog(self.frame)
-		(row,col,num)=d.result
+		(row,col,num,mode)=d.result
 		try:
 			row=int(row)
 			col=int(col)
 			num=int(num)
 			self.gl.new_game(row,col,num)
-			self.new_game(row,col,num)
-		except:
+			self.new_game(row,col,num,mode=mode)
+		except Exception as e:
+			print e
+			traceback.print_tb(sys.exc_info()[2])
 			tkMessageBox.showwarning("Warning","invalid input, please try again")
 	def dig(self,i,j):
-		self.gl.dig(i,j)
+		if self.gl.mode==ms.GameLogic.NORMAL:
+			self.gl.dig(i,j)
+		else:
+			self.gl.turn.make_move(i,j)
 		self.update_gui()
 	def mark(self,i,j):
 		self.gl.mark(i,j)
