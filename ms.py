@@ -18,6 +18,7 @@ class Cell:
 		self.row=row
 		self.col=col
 		self.val=val
+		self.last_move=None
 		self.state=Cell.UNKNOWN
 	def __str__(self):
 		if self.state==Cell.UNKNOWN:
@@ -229,8 +230,10 @@ class GameLogic:
 			print "switche turn to %s" % self.turn.name
 		else:
 			self.turn.score+=1
+		self.last_move=(i,j)
 		if self.check_win():
 			self.win()
+		
 
 	def compete_mark(self,i,j):
 		raise ForbiddenOperation()
@@ -285,6 +288,7 @@ class GameLogic:
 		self.state=GameLogic.RUN
 		self.row=row
 		self.col=col
+		self.last_move=None
 		self.game_board=Board(row,col,num,mine_loc=mine_loc)
 		if player1==None:player1=Human("humam",self)
 		if player2==None:player2=AI("AI",self)
@@ -315,7 +319,7 @@ class GameLogic:
 		print "You Lose...\n Better luck next time!\n"
 
 	def normal_win(self):
-		self.reveal_all()
+		#self.reveal_all()
 		print str(self)
 		self.state=GameLogic.WIN
 		print "Congratulations! You Win!!\n"
@@ -358,6 +362,7 @@ class GameLogic:
 		if self.get_cell_value(i,j)==0:
 			self.flood_fill_dig(i,j)
 		else: self.set_cell_state(i,j,Cell.KNOWN)
+		self.last_move=(i,j)
 
 		if self.check_lose():self.lose()
 		elif self.check_win():self.win()
@@ -373,6 +378,7 @@ class GameLogic:
 		if self.get_cell_state(i,j)==Cell.MARKED:
 			raise Exception("cell (%d,%d) is MARKED already" % (i,j))
 		self.set_cell_state(i,j,Cell.MARKED)
+		self.last_move=(i,j)
 
 		if self.check_win():self.win()
 
@@ -386,6 +392,7 @@ class GameLogic:
 		if self.get_cell_state(i,j)==Cell.UNKNOWN:
 			raise Exception("cell (%d,%d) is UNKNOWN" % (i,j))
 		self.set_cell_state(i,j,Cell.UNKNOWN)
+		self.last_move=(i,j)
 	
 	def normal_explore(self,i,j):
 		if self.get_cell_state(i,j)!=Cell.KNOWN:
@@ -402,6 +409,8 @@ class GameLogic:
 		for ti,tj in l:
 			if self.get_cell_state(ti,tj)==Cell.UNKNOWN:
 				self.dig(ti,tj)
+		self.last_move=(i,j)
+
 class LoaderSaver:
 	def save_to_file(self,gl,f):
 		gl.reset_mode()

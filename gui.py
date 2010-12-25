@@ -25,7 +25,7 @@ class MineSweeper:
 	class StatusBar(Frame):
 		def __init__(self,master):
 			Frame.__init__(self,master)
-			self.label=Label(self,bd=1,relief=SUNKEN)
+			self.label=Label(self,bd=1,relief=SUNKEN,anchor=W)
 			self.label.pack(fill=X)
 		
 	class NewGameDialog(tkSimpleDialog.Dialog):
@@ -47,9 +47,17 @@ class MineSweeper:
 			self.r2=Radiobutton(master,text="compete",variable=self.mode,value=ms.GameLogic.COMPETE)
 			self.r1.grid(row=3,column=0)
 			self.r2.grid(row=3,column=1)
+			self.p1=StringVar()
+			self.p2=StringVar()
+			self.p1.set("Human")
+			self.p2.set("AI")
+			self.o1=OptionMenu(master,self.p1,"Human","AI")
+			self.o2=OptionMenu(master,self.p2,"Human","AI")
+			self.o1.grid(row=4,column=0)
+			self.o2.grid(row=4,column=1)
 			return self.e1
 		def apply(self):
-			self.result=(self.e1.get(),self.e2.get(),self.e3.get(),self.mode.get())
+			self.result=(self.e1.get(),self.e2.get(),self.e3.get(),self.mode.get(),self.p1.get(),self.p2.get())
 	def load_img(self,path):
 		return ImageTk.PhotoImage(Image.open(path))
 	def __init__(self,master):
@@ -98,6 +106,7 @@ class MineSweeper:
 		for i in range(row):
 			for j in range(col):
 				b=self.buttons[i][j]
+				b['bd']=1
 				state=gl.get_cell_state(i,j)
 				value=gl.get_cell_value(i,j)
 				if state==UNKNOWN:
@@ -133,16 +142,16 @@ class MineSweeper:
 				b.bind("<ButtonRelease-3>",self.right_release)
 				b.grid(row=i,column=j)
 	def update_statusbar(self):
-		msg="Mode: "
+		msg=""
 		if self.gl.mode==ms.GameLogic.NORMAL:
 			msg+="normal"
 		elif self.gl.mode==ms.GameLogic.COMPETE:
 			msg+="compete"
 		msg+="\t"
 		if self.gl.mode==ms.GameLogic.COMPETE:
-			msg+="Turn: %s" % self.gl.turn.name
+			msg+="%s" % self.gl.turn.name
 			msg+="\t"
-			msg+="Score: %d-%d" % (self.gl.player1.score,self.gl.player2.score)
+			msg+="%d-%d" % (self.gl.player1.score,self.gl.player2.score)
 		self.statusbar.label['text']=msg
 	def update_gui(self):
 		if self.buttons==None: self.construct_new_frame()
@@ -162,6 +171,8 @@ class MineSweeper:
 			if self.gl.mode==ms.GameLogic.NORMAL:
 				msg="You Lose.\nBetter luck next time!"
 		self.update_statusbar()
+		if self.gl.last_move:
+			last_i,last_j=self.gl.last_move
 		if msg: tkMessageBox.showinfo("Result",msg)
 
 	def sunken_neighbour_widgets(self,w):
@@ -246,10 +257,20 @@ class MineSweeper:
 			self.player2_handler=h
 			h.daemon=True
 			h.start()
-	def new_game(self,row,col,num,mine_loc=None,mode=ms.GameLogic.NORMAL):
+	def new_game(self,row,col,num,mine_loc=None,mode=ms.GameLogic.NORMAL,player1=None,player2=None):
 		if mode!=self.gl.mode:
 			self.gl=ms.GameLogic(mode)
-		self.gl.new_game(row,col,num,mine_loc=mine_loc)
+		if player1=="Human" or player1==None:
+			player1=ms.Human("player1(Human)",self.gl)
+		elif player1=="AI":
+			player1=ms.AI("player1(AI)",self.gl)
+		else: raise Exception("Unknown player")
+		if player2=="Human":
+			player2=ms.Human("player2(Human)",self.gl)
+		elif player2=="AI" or player2==None:
+			player2=ms.AI("player2(AI)",self.gl)
+		else: raise Exception("Unknown player")
+		self.gl.new_game(row,col,num,mine_loc=mine_loc,player1=player1,player2=player2)
 		if mode==ms.GameLogic.COMPETE:
 			self.set_ai_handler()
 		self.buttons=None
@@ -270,13 +291,14 @@ class MineSweeper:
 		self.update_gui()
 	def click_new_game(self):
 		d=self.NewGameDialog(self.frame)
-		(row,col,num,mode)=d.result
+		(row,col,num,mode,p1,p2)=d.result
+
 		try:
 			row=int(row)
 			col=int(col)
 			num=int(num)
 			self.gl.new_game(row,col,num)
-			self.new_game(row,col,num,mode=mode)
+			self.new_game(row,col,num,mode=mode,player1=p1,player2=p2)
 		except Exception as e:
 			print e
 			traceback.print_tb(sys.exc_info()[2])
@@ -284,10 +306,11 @@ class MineSweeper:
 	def dig(self,i,j):
 		if self.gl.mode==ms.GameLogic.NORMAL:
 			self.gl.dig(i,j)
+			self.update_gui()
 		else:
 			if self.gl.turn.__class__==ms.Human:
 				self.gl.turn.make_move(i,j)
-		self.update_gui()
+				self.update_gui()
 	def mark(self,i,j):
 		self.gl.mark(i,j)
 		self.update_gui()
